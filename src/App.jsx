@@ -13,6 +13,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  
+  // حالة تتبع رسائل التحديث لكل طالب حسب الـ id
+  const [updateStatus, setUpdateStatus] = useState({});
 
   useEffect(() => {
     fetchStudents();
@@ -27,7 +30,7 @@ export default function App() {
     
     if (error) {
       console.error('خطأ في جلب البيانات:', error);
-      alert('فشل في جلب البيانات من Supabase. تأكد من تنفيذ أمر SQL لإيقاف الـ RLS.');
+      alert('فشل في جلب البيانات من Supabase. تأكد من إيقاف الـ RLS عبر SQL Editor في لوحة تحكم Supabase.');
     } else {
       setStudents(data || []);
     }
@@ -41,9 +44,18 @@ export default function App() {
       .eq('id', id);
 
     if (error) {
+      console.error('خطأ في الحفظ:', error);
       alert('حدث خطأ أثناء حفظ التحديث في قاعدة البيانات');
     } else {
       setStudents(students.map(s => s.id === id ? { ...s, phone_type: newPhoneType } : s));
+      
+      // إظهار رسالة "تم التحديث" لهذا الطالب المحدد
+      setUpdateStatus(prev => ({ ...prev, [id]: true }));
+      
+      // إخفاء الرسالة تلقائياً بعد ثانيتين
+      setTimeout(() => {
+        setUpdateStatus(prev => ({ ...prev, [id]: false }));
+      }, 2000);
     }
   };
 
@@ -261,7 +273,6 @@ export default function App() {
     <div className="min-h-screen bg-emerald-50/50 py-4 px-2 sm:p-6 font-sans" dir="rtl">
       <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-6 border border-emerald-100">
         
-        {/* الهيدر والعنوان متجاوب للشاشات الصغيرة */}
         <header className="text-center mb-6 sm:mb-8 border-b border-emerald-100 pb-4 sm:pb-6">
           <h1 className="text-xl sm:text-3xl font-extrabold text-emerald-900 leading-snug">
             نظام تسجيل بيانات جوالات الطلاب
@@ -271,7 +282,6 @@ export default function App() {
           </p>
         </header>
 
-        {/* قسم البحث وتسجيل الدخول المتجاوب */}
         <div className="mb-6 flex flex-col gap-3 sm:gap-4 justify-between items-center bg-emerald-50/80 p-3 sm:p-4 rounded-xl border border-emerald-200">
           <input
             type="text"
@@ -312,7 +322,6 @@ export default function App() {
             <p className="text-emerald-800 mt-3 text-sm font-medium">جاري تحميل البيانات...</p>
           </div>
         ) : (
-          /* جدول متجاوب يدعم الأجهزة الصغيرة مع ألوان متناوبة للصفوف الكاملة وتأثير Hover */
           <div className="overflow-x-auto shadow-sm rounded-xl border border-emerald-200">
             <table className="w-full min-w-[600px] border-collapse text-right bg-white text-sm">
               <thead>
@@ -336,13 +345,20 @@ export default function App() {
                       <td className="p-3 font-semibold text-gray-900">{student.student_name}</td>
                       <td className="p-3 text-emerald-700 text-center whitespace-nowrap">{student.section}</td>
                       <td className="p-3">
-                        <input
-                          type="text"
-                          defaultValue={student.phone_type || ''}
-                          onBlur={(e) => handlePhoneUpdate(student.id, e.target.value)}
-                          placeholder="اكتب نوع الجوال هنا..."
-                          className="w-full p-2 sm:p-2.5 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white shadow-inner transition"
-                        />
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            defaultValue={student.phone_type || ''}
+                            onBlur={(e) => handlePhoneUpdate(student.id, e.target.value)}
+                            placeholder="اكتب نوع الجوال هنا..."
+                            className="w-full p-2 sm:p-2.5 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white shadow-inner transition"
+                          />
+                          {updateStatus[student.id] && (
+                            <span className="absolute left-3 text-xs bg-emerald-600 text-white px-2 py-1 rounded-md shadow-sm animate-pulse whitespace-nowrap">
+                              تم التحديث ✓
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
